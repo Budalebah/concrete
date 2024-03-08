@@ -954,7 +954,6 @@ sdfg_gpu_debug_compare_memref(MemRef2 &a, MemRef2 &b, char const *msg) {
 // Stream emulator processes
 void memref_keyswitch_lwe_u64_process(Process *p, int32_t loc, int32_t chunk_id,
                                       uint64_t *out_ptr) {
-  assert(p->sk_index.val == 0 && "multiple ksk is not yet implemented on GPU");
   auto sched = [&](Dependence *d) {
     uint64_t num_samples = d->host_data.sizes[0];
     MemRef2 out = {
@@ -981,7 +980,8 @@ void memref_keyswitch_lwe_u64_process(Process *p, int32_t loc, int32_t chunk_id,
       void *ct0_gpu = d->device_data;
       void *out_gpu = cuda_malloc_async(data_size, s, loc);
       void *ksk_gpu = p->ctx.val->get_ksk_gpu(
-          p->level.val, p->input_lwe_dim.val, p->output_lwe_dim.val, loc, s);
+          p->level.val, p->input_lwe_dim.val, p->output_lwe_dim.val, loc, s,
+          p->sk_index.val);
       cuda_keyswitch_lwe_ciphertext_vector_64(
           s, loc, out_gpu, ct0_gpu, ksk_gpu, p->input_lwe_dim.val,
           p->output_lwe_dim.val, p->base_log.val, p->level.val, num_samples);
@@ -997,7 +997,6 @@ void memref_keyswitch_lwe_u64_process(Process *p, int32_t loc, int32_t chunk_id,
 
 void memref_bootstrap_lwe_u64_process(Process *p, int32_t loc, int32_t chunk_id,
                                       uint64_t *out_ptr) {
-  assert(p->sk_index.val == 0 && "multiple bsk is not yet implemented on GPU");
   assert(p->output_size.val == p->glwe_dim.val * p->poly_size.val + 1);
 
   Dependence *idep1 = p->input_streams[1]->get(host_location, chunk_id);
@@ -1081,9 +1080,9 @@ void memref_bootstrap_lwe_u64_process(Process *p, int32_t loc, int32_t chunk_id,
           p->glwe_dim.val, p->poly_size.val, num_samples);
       void *ct0_gpu = d0->device_data;
       void *out_gpu = cuda_malloc_async(data_size, s, loc);
-      void *fbsk_gpu =
-          p->ctx.val->get_bsk_gpu(p->input_lwe_dim.val, p->poly_size.val,
-                                  p->level.val, p->glwe_dim.val, loc, s);
+      void *fbsk_gpu = p->ctx.val->get_bsk_gpu(
+          p->input_lwe_dim.val, p->poly_size.val, p->level.val, p->glwe_dim.val,
+          loc, s, p->sk_index.val);
       cuda_bootstrap_amortized_lwe_ciphertext_vector_64(
           s, loc, out_gpu, glwe_ct_gpu, test_vector_idxes_gpu, ct0_gpu,
           fbsk_gpu, (int8_t *)pbs_buffer, p->input_lwe_dim.val, p->glwe_dim.val,
