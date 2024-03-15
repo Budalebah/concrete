@@ -5,6 +5,8 @@ pub mod encrypt;
 pub mod fft;
 pub mod keyswitch;
 pub mod linear_op;
+pub mod public_key;
+pub mod compact_public_key;
 pub mod secret_key;
 pub mod types;
 pub mod wop_pbs;
