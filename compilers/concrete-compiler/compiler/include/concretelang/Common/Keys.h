@@ -155,6 +155,11 @@ public:
   LweSecretKey(Message<concreteprotocol::LweSecretKeyInfo> info,
                concretelang::csprng::SecretCSPRNG &csprng);
 
+  void encrypt(uint64_t *lwe_ciphertext_buffer, const uint64_t input,
+               double variance, csprng::EncryptionCSPRNG &csprng) const;
+
+  void decrypt(uint64_t &output, const uint64_t *lwe_ciphertext_buffer) const;
+
 protected:
   friend class KeyWithBuffer;
 
@@ -170,6 +175,9 @@ public:
   LwePublicKey(Message<concreteprotocol::LwePublicKeyInfo> info,
                LweSecretKey &secretKey,
                concretelang::csprng::EncryptionCSPRNG &csprng);
+
+  void encrypt(uint64_t *lwe_ciphertext_buffer, const uint64_t input,
+               csprng::SecretCSPRNG &csprng) const;
 
 protected:
   friend class KeyWithBuffer;

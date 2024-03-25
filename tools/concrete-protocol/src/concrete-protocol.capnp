@@ -327,6 +327,7 @@ struct KeysetInfo {
   lweBootstrapKeys @1 :List(LweBootstrapKeyInfo); # The bootstrap key descriptions
   lweKeyswitchKeys @2 :List(LweKeyswitchKeyInfo); # The keyswitch key descriptions.
   packingKeyswitchKeys @3 :List(PackingKeyswitchKeyInfo); # The packing keyswitch key descriptions.
+  lwePublicKeys @4 :List(LwePublicKeyInfo); # The public key descriptions.
 }
 
 struct ServerKeyset {
@@ -343,6 +344,13 @@ struct ClientKeyset {
   # store and communicate such a keyset.
     
   lweSecretKeys @0 :List(LweSecretKey); # The secret key values.
+}
+
+struct ClientPublicKeyset {
+  # A client public keyset is represented by an ensemble of public key values. This structure allows to
+  # store and communicate such a keyset.
+
+  lwePublicKeys @0 :List(LwePublicKey); # The public key values.
 }
 
 struct Keyset {
