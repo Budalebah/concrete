@@ -905,6 +905,12 @@ protected:
       updateLatticeValuesFromState(state, v);
       return true;
     });
+
+    printf("\n");
+    printf("State:\n");
+    printf("------\n");
+    dumpAllState(op);
+    printf("\n");
   }
 
   // Redirects the request for the initial inferred type of an

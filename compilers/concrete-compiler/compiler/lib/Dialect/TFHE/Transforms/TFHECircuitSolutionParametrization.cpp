@@ -231,7 +231,6 @@ public:
               Tracing::TraceCiphertextOp, mlir::tensor::EmptyOp>([&](auto op) {
           converge<NoTypeConstraint>(op, state, inferredTypes);
         })
-
         .Case<TFHE::AddGLWEOp, TFHE::ABatchedAddGLWEOp>([&](auto op) {
           converge<SameOperandTypeConstraint<0, 1>,
                    SameOperandAndResultTypeConstraint<0, 0>>(op, state,
@@ -253,7 +252,6 @@ public:
               converge<SameOperandAndResultElementTypeConstraint<0, 0>>(
                   op, state, inferredTypes);
             })
-
         .Case<mlir::tensor::FromElementsOp>([&](auto op) {
           TypeConstraintSet<> cs;
 
@@ -274,7 +272,6 @@ public:
           cs.addConstraint<SameOperandAndResultElementTypeConstraint<0, 0>>();
           cs.converge(op, *this, state, inferredTypes);
         })
-
         .Case<mlir::tensor::InsertOp, mlir::tensor::InsertSliceOp>(
             [&](auto op) {
               converge<SameOperandElementTypeConstraint<0, 1>,
@@ -319,7 +316,6 @@ public:
 
           cs.converge(op, *this, state, inferredTypes);
         })
-
         .Case<mlir::scf::ForallOp>([&](mlir::scf::ForallOp op) {
           TypeConstraintSet<> cs;
 
@@ -342,8 +338,7 @@ public:
 
           cs.converge(op, *this, state, inferredTypes);
         })
-
-        .Case<mlir::scf::YieldOp>([&](auto op) {
+        .Case<mlir::scf::YieldOp>([&](mlir::scf::YieldOp op) {
           TypeConstraintSet<> cs;
 
           if (solution.has_value()) {
@@ -355,6 +350,46 @@ public:
             cs.addConstraint<DynamicSameTypeConstraint<DynamicFunctorYield>>(
                 [=]() { return op->getParentOp()->getResult(i); },
                 [=]() { return op->getOperand(i); });
+          }
+
+          cs.converge(op, *this, state, inferredTypes);
+        })
+        .Case<mlir::tensor::YieldOp>([&](mlir::tensor::YieldOp op) {
+          TypeConstraintSet<> cs;
+
+          if (solution.has_value()) {
+            cs.addConstraint<ApplySolverSolutionConstraint>(*this,
+                                                            solution.value());
+          }
+
+          for (size_t i = 0; i < op->getNumOperands(); i++) {
+            cs.addConstraint<
+                DynamicSameElementTypeConstraint<DynamicFunctorYield>>(
+                [=]() { return op->getParentOp()->getResult(i); },
+                [=]() { return op->getOperand(i); });
+          }
+
+          cs.converge(op, *this, state, inferredTypes);
+        })
+        .Case<mlir::tensor::GenerateOp>([&](mlir::tensor::GenerateOp op) {
+          TypeConstraintSet<> cs;
+
+          if (solution.has_value()) {
+            cs.addConstraint<ApplySolverSolutionConstraint>(*this,
+                                                            solution.value());
+          }
+
+          for (size_t i = 0; i < op->getNumResults(); i++) {
+            mlir::Value result = op->getResult(i);
+            mlir::Value terminatorOperand =
+                op.getBody().getBlocks().front().getTerminator()->getOperand(i);
+
+            terminatorOperand.dump();
+            result.dump();
+
+            cs.addConstraint<
+                DynamicSameElementTypeConstraint<DynamicFunctorYield>>(
+                [=]() { return result; }, [=]() { return terminatorOperand; });
           }
 
           cs.converge(op, *this, state, inferredTypes);
@@ -605,6 +640,10 @@ public:
                              mlir::OpOperand &oldOperand,
                              mlir::Type resolvedType,
                              mlir::Value producerValue) override {
+
+    producerValue.dump();
+    resolvedType.dump();
+
     mlir::Operation *oldOp = oldOperand.getOwner();
 
     std::optional<TFHE::GLWECipherTextType> cttFrom =

@@ -853,6 +853,8 @@ struct FHEToTFHEScalarPass : public FHEToTFHEScalarBase<FHEToTFHEScalarPass> {
     patterns.add<mlir::concretelang::TypeConvertingReinstantiationPattern<
         mlir::linalg::YieldOp>>(patterns.getContext(), converter);
     patterns.add<mlir::concretelang::TypeConvertingReinstantiationPattern<
+        mlir::tensor::YieldOp>>(patterns.getContext(), converter);
+    patterns.add<mlir::concretelang::TypeConvertingReinstantiationPattern<
                      mlir::tensor::GenerateOp, true>,
                  mlir::concretelang::TypeConvertingReinstantiationPattern<
                      mlir::scf::ForOp>,
@@ -881,6 +883,8 @@ struct FHEToTFHEScalarPass : public FHEToTFHEScalarBase<FHEToTFHEScalarPass> {
     mlir::concretelang::addDynamicallyLegalTypeOp<mlir::scf::ForallOp>(
         target, converter);
     mlir::concretelang::addDynamicallyLegalTypeOp<mlir::tensor::EmptyOp>(
+        target, converter);
+    mlir::concretelang::addDynamicallyLegalTypeOp<mlir::tensor::YieldOp>(
         target, converter);
     mlir::concretelang::addDynamicallyLegalTypeOp<
         mlir::tensor::ParallelInsertSliceOp>(target, converter);

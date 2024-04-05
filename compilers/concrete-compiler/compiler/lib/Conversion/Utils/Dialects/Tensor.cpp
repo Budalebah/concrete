@@ -56,6 +56,36 @@ TypeConvertingReinstantiationPattern<mlir::tensor::FromElementsOp, false>::
 // Specialization copying attributes not necessary, as the base
 // template works correctly
 
+mlir::Operation *
+convertOpWithBlocks(mlir::Operation *op, mlir::ValueRange newOperands,
+                    mlir::TypeRange newResultTypes,
+                    mlir::TypeConverter &typeConverter,
+                    mlir::ConversionPatternRewriter &rewriter) {
+  op->dump();
+
+  mlir::OperationState state(op->getLoc(), op->getName().getStringRef(),
+                             newOperands, newResultTypes, op->getAttrs(),
+                             op->getSuccessors());
+
+  for (Region &region : op->getRegions()) {
+    Region *newRegion = state.addRegion();
+    rewriter.inlineRegionBefore(region, *newRegion, newRegion->begin());
+    TypeConverter::SignatureConversion result(newRegion->getNumArguments());
+    (void)typeConverter.convertSignatureArgs(newRegion->getArgumentTypes(),
+                                             result);
+    rewriter.applySignatureConversion(newRegion, result);
+  }
+
+  Operation *newOp = rewriter.create(state);
+
+  op->dump();
+  newOp->dump();
+
+  rewriter.replaceOp(op, newOp->getResults());
+
+  return newOp;
+}
+
 template <>
 mlir::LogicalResult
 TypeConvertingReinstantiationPattern<tensor::ExpandShapeOp, false>::
@@ -77,28 +107,11 @@ TypeConvertingReinstantiationPattern<tensor::GenerateOp, true>::matchAndRewrite(
     tensor::GenerateOp oldOp,
     mlir::OpConversionPattern<tensor::GenerateOp>::OpAdaptor adaptor,
     mlir::ConversionPatternRewriter &rewriter) const {
+
   mlir::SmallVector<mlir::Type> resultTypes = convertResultTypes(oldOp);
 
-  rewriter.setInsertionPointAfter(oldOp);
-  tensor::GenerateOp newGenerateOp = rewriter.create<tensor::GenerateOp>(
-      oldOp.getLoc(), resultTypes, adaptor.getOperands(), oldOp->getAttrs());
-
-  mlir::Block &oldBlock = oldOp.getBody().getBlocks().front();
-  mlir::Block &newBlock = newGenerateOp.getBody().getBlocks().front();
-  auto begin = oldBlock.begin();
-  auto nOps = oldBlock.getOperations().size();
-
-  newBlock.getOperations().splice(newBlock.getOperations().begin(),
-                                  oldBlock.getOperations(), begin,
-                                  std::next(begin, nOps - 1));
-
-  for (auto argsPair : llvm::zip(oldOp.getRegion().getArguments(),
-                                 newGenerateOp.getRegion().getArguments())) {
-    replaceAllUsesInRegionWith(std::get<0>(argsPair), std::get<1>(argsPair),
-                               newGenerateOp.getRegion());
-  }
-
-  rewriter.replaceOp(oldOp, newGenerateOp.getResult());
+  convertOpWithBlocks(oldOp, adaptor.getOperands(), resultTypes,
+                      *getTypeConverter(), rewriter);
 
   return mlir::success();
 }

@@ -21,8 +21,9 @@ populateWithTensorTypeConverterPatterns(mlir::RewritePatternSet &patterns,
                                         mlir::ConversionTarget &target,
                                         mlir::TypeConverter &typeConverter) {
   // ExtractOp
-  patterns.add<TypeConvertingReinstantiationPattern<mlir::tensor::ExtractOp>>(
-      patterns.getContext(), typeConverter);
+  patterns
+      .add<TypeConvertingReinstantiationPattern<mlir::tensor::ExtractOp, true>>(
+          patterns.getContext(), typeConverter);
   addDynamicallyLegalTypeOp<mlir::tensor::ExtractOp>(target, typeConverter);
 
   // ExtractSliceOp
