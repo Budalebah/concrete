@@ -522,7 +522,8 @@ CompilerEngine::compile(mlir::ModuleOp moduleOp, Target target,
           mlir::concretelang::createProgramInfoFromTfheDialect(
               module, options.optimizerConfig.security,
               options.encodings.value(), options.compressEvaluationKeys,
-              options.compressInputCiphertexts);
+              options.compressInputCiphertexts,
+              options.optimizerConfig.public_keys);
 
       if (!programInfoOrErr)
         return programInfoOrErr.takeError();
