@@ -40,14 +40,15 @@ public:
   TestProgram(mlir::concretelang::CompilationOptions options)
       : artifactDirectory(createTempFolderIn(getSystemTempFolderPath())),
         compiler(mlir::concretelang::CompilationContext::createShared()),
-        encryptionCsprng(std::make_shared<csprng::EncryptionCSPRNG>(0)) {
+        encryptionCsprng(std::make_shared<csprng::EncryptionCSPRNG>(0)),
+        secretCsprng(std::make_shared<csprng::SecretCSPRNG>(0)) {
     compiler.setCompilationOptions(options);
   }
 
   TestProgram(TestProgram &&tc)
       : artifactDirectory(tc.artifactDirectory), compiler(tc.compiler),
-        library(tc.library), keyset(tc.keyset),
-        encryptionCsprng(tc.encryptionCsprng) {
+        library(tc.library), keyset(tc.keyset), publicKeyset(tc.publicKeyset),
+        encryptionCsprng(tc.encryptionCsprng), secretCsprng(tc.secretCsprng) {
     tc.artifactDirectory = "";
   };
 
@@ -73,7 +74,6 @@ public:
                               __uint128_t encryptionSeed = 0,
                               bool tryCache = true) {
     if (isSimulation()) {
-      Keyset keyset{};
       return outcome::success();
     }
     OUTCOME_TRY(auto lib, getLibrary());
@@ -89,6 +89,13 @@ public:
       Message<concreteprotocol::KeysetInfo> keysetInfo =
           lib.getProgramInfo().asReader().getKeyset();
       keyset.emplace(Keyset(keysetInfo, secretCsprng, encryptionCsprng));
+    }
+    if (compiler.getCompilationOptions().optimizerConfig.public_keys !=
+        concrete_optimizer::PublicKey::None) {
+      auto encryptionCsprng = csprng::EncryptionCSPRNG(encryptionSeed);
+      OUTCOME_TRY(auto pks,
+                  keyset->generateClientPublicKeyset(encryptionCsprng));
+      publicKeyset.emplace(std::move(pks));
     }
     return outcome::success();
   }
@@ -151,16 +158,21 @@ public:
 
   Result<clientlib::ValueExporter> getValueExporter(std::string name = "main") {
     OUTCOME_TRY(auto lib, getLibrary());
-    Keyset ks{};
+    keysets::ClientKeyset ks;
     if (!isSimulation()) {
-      OUTCOME_TRY(ks, getKeyset());
+      ks = keyset->client;
     }
     auto programInfo = lib.getProgramInfo();
     OUTCOME_TRY(auto clientProgram,
                 clientlib::ClientProgram::create(programInfo));
-    OUTCOME_TRY(auto exporter, clientProgram.getValueExporter(name, ks.client,
-                                                              encryptionCsprng,
-                                                              isSimulation()));
+    if (compiler.getCompilationOptions().optimizerConfig.public_keys !=
+        concrete_optimizer::PublicKey::None) {
+      OUTCOME_TRY(auto exporter, clientProgram.getPublicValueExporter(
+                                     name, *publicKeyset, secretCsprng));
+      return exporter;
+    }
+    OUTCOME_TRY(auto exporter, clientProgram.getValueExporter(
+                                   name, ks, encryptionCsprng, isSimulation()));
     return exporter;
   }
 
@@ -211,7 +223,9 @@ private:
   mlir::concretelang::CompilerEngine compiler;
   std::optional<mlir::concretelang::CompilerEngine::Library> library;
   std::optional<Keyset> keyset;
+  std::optional<keysets::ClientPublicKeyset> publicKeyset;
   std::shared_ptr<csprng::EncryptionCSPRNG> encryptionCsprng;
+  std::shared_ptr<csprng::SecretCSPRNG> secretCsprng;
 
 private:
   std::string getSystemTempFolderPath() {

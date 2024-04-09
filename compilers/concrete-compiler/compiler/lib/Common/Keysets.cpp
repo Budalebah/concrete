@@ -171,13 +171,6 @@ Keyset::Keyset(const Message<concreteprotocol::KeysetInfo> &info,
   }
 }
 
-Keyset Keyset::fromProto(const Message<concreteprotocol::Keyset> &proto) {
-  auto server = ServerKeyset::fromProto(proto.asReader().getServer());
-  auto client = ClientKeyset::fromProto(proto.asReader().getClient());
-
-  return {server, client};
-}
-
 Message<concreteprotocol::Keyset> Keyset::toProto() const {
   auto output = Message<concreteprotocol::Keyset>();
   auto serverProto = server.toProto();
@@ -304,7 +297,7 @@ loadKeysFromFiles(const Message<concreteprotocol::KeysetInfo> &keysetInfo,
   ClientKeyset clientKeyset = ClientKeyset{secretKeys};
   ServerKeyset serverKeyset =
       ServerKeyset{bootstrapKeys, keyswitchKeys, packingKeyswitchKeys};
-  Keyset keyset = Keyset{serverKeyset, clientKeyset};
+  Keyset keyset = Keyset(keysetInfo, serverKeyset, clientKeyset);
 
   return keyset;
 }

@@ -81,6 +81,22 @@ parseEndToEndCommandLine(int argc, char **argv) {
       "compress-input-ciphertexts",
       llvm::cl::desc("Enable the compression of input ciphertexts"),
       llvm::cl::init(false));
+  llvm::cl::opt<concrete_optimizer::PublicKey> publicKeys(
+      "public-keys",
+      llvm::cl::desc("Select if public keys should be used for encryption and "
+                     "the kind of public key"),
+      llvm::cl::init(optimizer::DEFAULT_PUBLIC_KEYS),
+      llvm::cl::values(clEnumValN(concrete_optimizer::PublicKey::None,
+                                  toString(concrete_optimizer::PublicKey::None),
+                                  "Don't use public keys")),
+      llvm::cl::values(
+          clEnumValN(concrete_optimizer::PublicKey::Classic,
+                     toString(concrete_optimizer::PublicKey::Classic),
+                     "Use classic public keys")),
+      llvm::cl::values(
+          clEnumValN(concrete_optimizer::PublicKey::Compact,
+                     toString(concrete_optimizer::PublicKey::Compact),
+                     "Use compact public keys")));
 
   llvm::cl::opt<bool> distBenchmark(
       "distributed",
@@ -164,6 +180,7 @@ parseEndToEndCommandLine(int argc, char **argv) {
   compilationOptions.optimizerConfig.security = securityLevel.getValue();
   compilationOptions.optimizerConfig.strategy = optimizerStrategy.getValue();
   compilationOptions.optimizerConfig.key_sharing = keySharing.getValue();
+  compilationOptions.optimizerConfig.public_keys = publicKeys.getValue();
   mlir::concretelang::setupLogging(verbose.getValue());
 
   // Parse all tests description files
@@ -226,6 +243,11 @@ std::string getOptionsName(mlir::concretelang::CompilationOptions compilation) {
   if (compilation.compressInputCiphertexts !=
       defaultOptions.compressInputCiphertexts)
     os << "_compressInputCiphertexts" << compilation.compressInputCiphertexts;
+
+  /// Public keys
+  if (compilation.optimizerConfig.public_keys !=
+      defaultOptions.optimizerConfig.public_keys)
+    os << "_publicKeys" << compilation.optimizerConfig.public_keys;
 
   /// Optimizer options
   if (compilation.optimizerConfig.strategy !=

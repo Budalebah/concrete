@@ -62,14 +62,13 @@ struct Keyset {
   ServerKeyset server;
   ClientKeyset client;
 
-  Keyset() : info(Message<concreteprotocol::KeysetInfo>()){};
-
   /// Generates a fresh keyset from infos.
   Keyset(const Message<concreteprotocol::KeysetInfo> &info,
          concretelang::csprng::SecretCSPRNG &secretCsprng,
          csprng::EncryptionCSPRNG &encryptionCsprng);
-  Keyset(ServerKeyset server, ClientKeyset client)
-      : server(server), client(client) {}
+  Keyset(const Message<concreteprotocol::KeysetInfo> &info, ServerKeyset server,
+         ClientKeyset client)
+      : server(server), client(client), info(info) {}
 
   static Keyset fromProto(const Message<concreteprotocol::Keyset> &proto);
 
