@@ -2,12 +2,33 @@ use crate::computing_cost::complexity_model::ComplexityModel;
 use crate::config;
 use crate::config::GpuPbsType;
 use crate::global_parameters::{Range, DEFAUT_DOMAINS};
+use crate::parameters::GlweParameters;
 
 #[derive(Clone, Copy, Debug)]
 pub struct NoiseBoundConfig {
     pub security_level: u64,
     pub maximum_acceptable_error_probability: f64,
     pub ciphertext_modulus_log: u32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum PublicKey {
+    None,
+    Classic,
+    Compact,
+}
+
+impl PublicKey {
+    pub fn filter_glwe_params(self, glwe_params: &GlweParameters) -> bool {
+        return match self {
+            Self::None | Self::Classic => true,
+            Self::Compact => {
+                // Test if the lwe dimension is a power of 2
+                let ldim = glwe_params.glwe_dimension * (2 << glwe_params.log2_polynomial_size);
+                (ldim & (ldim - 1)) == 0
+            }
+        };
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -19,18 +40,20 @@ pub struct Config<'a> {
     pub fft_precision: u32,
     pub complexity_model: &'a dyn ComplexityModel,
     pub composable: bool,
+    pub public_keys: PublicKey,
 }
 
 #[derive(Clone, Debug)]
 pub struct SearchSpace {
-    pub glwe_log_polynomial_sizes: Vec<u64>,
-    pub glwe_dimensions: Vec<u64>,
+    glwe_log_polynomial_sizes: Vec<u64>,
+    glwe_dimensions: Vec<u64>,
     pub internal_lwe_dimensions: Vec<u64>,
     pub levelled_only_lwe_dimensions: Range,
+    public_key: PublicKey,
 }
 
 impl SearchSpace {
-    pub fn default_cpu() -> Self {
+    pub fn default_cpu(public_key: PublicKey) -> Self {
         let glwe_log_polynomial_sizes: Vec<u64> = DEFAUT_DOMAINS
             .glwe_pbs_constrained
             .log2_polynomial_size
@@ -43,10 +66,11 @@ impl SearchSpace {
             glwe_dimensions,
             internal_lwe_dimensions,
             levelled_only_lwe_dimensions,
+            public_key,
         }
     }
 
-    pub fn default_gpu_lowlat() -> Self {
+    pub fn default_gpu_lowlat(public_key: PublicKey) -> Self {
         // See backends/concrete_cuda/implementation/src/bootstrap_low_latency.cu
         let glwe_log_polynomial_sizes: Vec<u64> = (8..=14).collect();
 
@@ -59,10 +83,11 @@ impl SearchSpace {
             glwe_dimensions,
             internal_lwe_dimensions,
             levelled_only_lwe_dimensions,
+            public_key,
         }
     }
 
-    pub fn default_gpu_amortized() -> Self {
+    pub fn default_gpu_amortized(public_key: PublicKey) -> Self {
         // See backends/concrete_cuda/implementation/src/bootstrap_amortized.cu
         let glwe_log_polynomial_sizes: Vec<u64> = (8..=14).collect();
 
@@ -75,19 +100,35 @@ impl SearchSpace {
             glwe_dimensions,
             internal_lwe_dimensions,
             levelled_only_lwe_dimensions,
+            public_key,
         }
     }
-    pub fn default(processing_unit: config::ProcessingUnit) -> Self {
+    pub fn default(processing_unit: config::ProcessingUnit, public_key: PublicKey) -> Self {
         match processing_unit {
-            config::ProcessingUnit::Cpu => Self::default_cpu(),
+            config::ProcessingUnit::Cpu => Self::default_cpu(public_key),
             config::ProcessingUnit::Gpu {
                 pbs_type: GpuPbsType::Amortized,
                 ..
-            } => Self::default_gpu_amortized(),
+            } => Self::default_gpu_amortized(public_key),
             config::ProcessingUnit::Gpu {
                 pbs_type: GpuPbsType::Lowlat,
                 ..
-            } => Self::default_gpu_lowlat(),
+            } => Self::default_gpu_lowlat(public_key),
         }
+    }
+
+    pub fn get_glwe_params(self) -> impl Iterator<Item = GlweParameters> {
+        self.glwe_dimensions
+            .clone()
+            .into_iter()
+            .flat_map(move |glwe_dimension| {
+                self.glwe_log_polynomial_sizes.clone().into_iter().map(
+                    move |log2_polynomial_size| GlweParameters {
+                        log2_polynomial_size,
+                        glwe_dimension,
+                    },
+                )
+            })
+            .filter(move |glwe_param| self.public_key.filter_glwe_params(glwe_param))
     }
 }

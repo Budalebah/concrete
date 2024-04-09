@@ -314,59 +314,53 @@ pub fn optimize(
         !dag.feasible(input_noise_out, 0.0, 0.0, noise_modulus_switching)
     };
 
-    for &glwe_dim in &search_space.glwe_dimensions {
-        for &glwe_log_poly_size in &search_space.glwe_log_polynomial_sizes {
-            let glwe_params = GlweParameters {
-                log2_polynomial_size: glwe_log_poly_size,
-                glwe_dimension: glwe_dim,
-            };
-            let input_noise_out = minimal_variance(&config, glwe_params);
+    for glwe_params in search_space.clone().get_glwe_params() {
+        let input_noise_out = minimal_variance(&config, glwe_params);
 
-            let cmux_pareto = caches.cmux.pareto_quantities(glwe_params);
+        let cmux_pareto = caches.cmux.pareto_quantities(glwe_params);
 
-            for &internal_dim in &search_space.internal_lwe_dimensions {
-                let ks_pareto = caches.keyswitch.pareto_quantities(internal_dim);
+        for &internal_dim in &search_space.internal_lwe_dimensions {
+            let ks_pareto = caches.keyswitch.pareto_quantities(internal_dim);
 
-                let noise_modulus_switching =
-                    noise_modulus_switching(glwe_log_poly_size, internal_dim);
-                if not_feasible(input_noise_out, noise_modulus_switching) {
-                    // noise_modulus_switching is increasing with internal_dim
-                    break;
-                }
-                if too_complex_macro_parameters(
-                    &state,
-                    &dag,
-                    internal_dim,
-                    glwe_params,
-                    cmux_pareto,
-                    ks_pareto,
-                ) {
-                    break;
-                }
-                if not_feasible_macro_parameters(
-                    &dag,
-                    internal_dim,
-                    input_noise_out,
-                    noise_modulus_switching,
-                    cmux_pareto,
-                    ks_pareto,
-                ) {
-                    continue;
-                }
-                update_best_solution_with_best_decompositions(
-                    &mut state,
-                    &consts,
-                    &dag,
-                    internal_dim,
-                    glwe_params,
-                    input_noise_out,
-                    noise_modulus_switching,
-                    cmux_pareto,
-                    ks_pareto,
-                );
-                if dag.nb_luts == 0 && state.best_solution.is_some() {
-                    return state;
-                }
+            let noise_modulus_switching =
+                noise_modulus_switching(glwe_params.log2_polynomial_size, internal_dim);
+            if not_feasible(input_noise_out, noise_modulus_switching) {
+                // noise_modulus_switching is increasing with internal_dim
+                break;
+            }
+            if too_complex_macro_parameters(
+                &state,
+                &dag,
+                internal_dim,
+                glwe_params,
+                cmux_pareto,
+                ks_pareto,
+            ) {
+                break;
+            }
+            if not_feasible_macro_parameters(
+                &dag,
+                internal_dim,
+                input_noise_out,
+                noise_modulus_switching,
+                cmux_pareto,
+                ks_pareto,
+            ) {
+                continue;
+            }
+            update_best_solution_with_best_decompositions(
+                &mut state,
+                &consts,
+                &dag,
+                internal_dim,
+                glwe_params,
+                input_noise_out,
+                noise_modulus_switching,
+                cmux_pareto,
+                ks_pareto,
+            );
+            if dag.nb_luts == 0 && state.best_solution.is_some() {
+                return state;
             }
         }
     }

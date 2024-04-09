@@ -944,6 +944,7 @@ namespace concrete_optimizer {
   struct OperationDag;
   struct Weights;
   enum class Encoding : ::std::uint8_t;
+  enum class PublicKey : ::std::uint8_t;
   enum class MultiParamStrategy : ::std::uint8_t;
   struct Options;
   namespace dag {
@@ -1012,6 +1013,15 @@ enum class Encoding : ::std::uint8_t {
   Crt = 2,
 };
 #endif // CXXBRIDGE1_ENUM_concrete_optimizer$Encoding
+
+#ifndef CXXBRIDGE1_ENUM_concrete_optimizer$PublicKey
+#define CXXBRIDGE1_ENUM_concrete_optimizer$PublicKey
+enum class PublicKey : ::std::uint8_t {
+  None = 0,
+  Classic = 1,
+  Compact = 2,
+};
+#endif // CXXBRIDGE1_ENUM_concrete_optimizer$PublicKey
 
 namespace dag {
 #ifndef CXXBRIDGE1_STRUCT_concrete_optimizer$dag$OperatorIndex
@@ -1095,6 +1105,7 @@ struct Options final {
   ::std::uint32_t ciphertext_modulus_log;
   ::std::uint32_t fft_precision;
   bool composable;
+  ::concrete_optimizer::PublicKey public_keys;
 
   using IsRelocatable = ::std::true_type;
 };
