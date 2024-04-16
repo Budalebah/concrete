@@ -119,8 +119,8 @@ struct PBS_buffer {
   int8_t *get_pbs_buffer(void *stream, uint32_t gpu_idx,
                          uint32_t glwe_dimension, uint32_t polynomial_size,
                          uint32_t input_lwe_ciphertext_count) {
-    assert(glwe_dimension == glwe_dim);
-    assert(polynomial_size == poly_size);
+    assert(glwe_dimension <= glwe_dim);
+    assert(polynomial_size <= poly_size);
     assert(input_lwe_ciphertext_count <= max_pbs_buffer_samples);
     assert(stream == gpu_stream);
     assert(gpu_idx == gpu_index);
@@ -128,7 +128,6 @@ struct PBS_buffer {
   }
   uint32_t get_max_pbs_buffer_samples() { return max_pbs_buffer_samples; }
 
-private:
   int8_t *pbs_buffer;
   uint32_t max_pbs_buffer_samples;
   uint32_t glwe_dim;
@@ -154,8 +153,10 @@ struct GPU_state {
   inline int8_t *get_pbs_buffer(uint32_t glwe_dimension,
                                 uint32_t polynomial_size,
                                 uint32_t input_lwe_ciphertext_count) {
-    if (pbs_buffer != nullptr &&
-        pbs_buffer->get_max_pbs_buffer_samples() < input_lwe_ciphertext_count) {
+    if (pbs_buffer != nullptr && (pbs_buffer->glwe_dim != glwe_dimension ||
+                                  pbs_buffer->poly_size != polynomial_size ||
+                                  pbs_buffer->get_max_pbs_buffer_samples() <
+                                      input_lwe_ciphertext_count)) {
       delete pbs_buffer;
       pbs_buffer = nullptr;
     }

@@ -3,6 +3,9 @@
 // https://github.com/zama-ai/concrete/blob/main/LICENSE.txt
 // for license information.
 
+#include <concretelang/Dialect/TFHE/IR/TFHEDialect.h>
+#include <concretelang/Dialect/TFHE/IR/TFHEOps.h>
+#include <concretelang/Dialect/TFHE/IR/TFHETypes.h>
 #include <functional>
 #include <limits>
 #include <llvm/ADT/STLExtras.h>
@@ -1047,7 +1050,11 @@ public:
       // Predicate checking whether an scf.for op is a valid candidate
       // to expand the loop nest upwards towards the outermost loop
       auto isCandidateLoop = [](mlir::scf::ForOp forOp) -> bool {
-        return isStaticLoop(forOp);
+        bool hasKSorBS = false;
+        for (mlir::Operation &op : forOp.getBody()->getOperations())
+          if (llvm::isa<TFHE::KeySwitchGLWEOp, TFHE::BootstrapGLWEOp>(op))
+            hasKSorBS = true;
+        return hasKSorBS && isStaticLoop(forOp);
       };
 
       // Only batchable operations within at least one loop are of
