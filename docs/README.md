@@ -21,7 +21,7 @@ layout:
 
 Learn the basics of Concrete, set it up, and make it run with ease.
 
-<table data-view="cards"><thead><tr><th></th><th data-hidden data-card-target data-type="content-ref"></th><th data-hidden data-card-cover data-type="files"></th></tr></thead><tbody><tr><td><strong>What is Concrete</strong></td><td><a href="get-started/">get-started</a></td><td><a href=".gitbook/assets/yellow1.png">yellow1.png</a></td></tr><tr><td><strong>Installation</strong></td><td><a href="get-started/installing.md">installing.md</a></td><td><a href=".gitbook/assets/yellow2.png">yellow2.png</a></td></tr><tr><td><strong>Quick start</strong></td><td><a href="get-started/quick_start.md">quick_start.md</a></td><td><a href=".gitbook/assets/yellow3.png">yellow3.png</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th data-hidden data-card-target data-type="content-ref"></th><th data-hidden data-card-cover data-type="files"></th></tr></thead><tbody><tr><td><strong>What is Concrete</strong></td><td><a href="get-started/readme.md">readme.md</a></td><td><a href=".gitbook/assets/yellow1.png">yellow1.png</a></td></tr><tr><td><strong>Installation</strong></td><td><a href="get-started/installing.md">installing.md</a></td><td><a href=".gitbook/assets/yellow2.png">yellow2.png</a></td></tr><tr><td><strong>Quick start</strong></td><td><a href="get-started/quick_start.md">quick_start.md</a></td><td><a href=".gitbook/assets/yellow3.png">yellow3.png</a></td></tr></tbody></table>
 
 ## Build with Concrete
 
