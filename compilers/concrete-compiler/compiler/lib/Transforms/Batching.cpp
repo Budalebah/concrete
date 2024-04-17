@@ -1050,11 +1050,18 @@ public:
       // Predicate checking whether an scf.for op is a valid candidate
       // to expand the loop nest upwards towards the outermost loop
       auto isCandidateLoop = [](mlir::scf::ForOp forOp) -> bool {
-        bool hasKSorBS = false;
-        for (mlir::Operation &op : forOp.getBody()->getOperations())
-          if (llvm::isa<TFHE::KeySwitchGLWEOp, TFHE::BootstrapGLWEOp>(op))
-            hasKSorBS = true;
-        return hasKSorBS && isStaticLoop(forOp);
+	//return isStaticLoop(forOp);
+	std::function<bool(mlir::scf::ForOp forOp)> hasKSorBS = [&](mlir::scf::ForOp forOp) -> bool {
+	  for (mlir::Operation &op : forOp.getBody()->getOperations()) {
+	    if (llvm::isa<TFHE::KeySwitchGLWEOp, TFHE::BootstrapGLWEOp>(op))
+	      return true;
+	    if (auto nested = llvm::dyn_cast_or_null<mlir::scf::ForOp>(op); nested)
+	      if (hasKSorBS(nested))
+		return true;
+	  }
+	  return false;
+	};
+        return hasKSorBS(forOp) && isStaticLoop(forOp);
       };
 
       // Only batchable operations within at least one loop are of
